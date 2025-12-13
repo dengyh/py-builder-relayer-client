@@ -313,8 +313,25 @@ class RelayClient:
         builder_headers = self._generate_builder_headers(method, request_path, body)
         if builder_headers is None:
             raise RelayerClientException("could not generate builder headers")
+
+        url = f"{self.relayer_url}{request_path}"
+
+        # Log request parameters
+        self.logger.info(f"Making {method} request to: {url}")
+        if builder_headers:
+            # Mask sensitive headers
+            safe_headers = {}
+            for key, value in builder_headers.items():
+                if key.lower() in ['authorization', 'api-key', 'api-secret', 'x-api-key', 'x-builder-signature', 'x-builder-timestamp']:
+                    safe_headers[key] = f"{value[:10]}..." if value and len(str(value)) > 10 else "***"
+                else:
+                    safe_headers[key] = value
+            self.logger.info(f"Request headers: {safe_headers}")
+        if body:
+            self.logger.info(f"Request body: {body}")
+
         return post(
-            f"{self.relayer_url}{request_path}", headers=builder_headers, data=body
+            url, headers=builder_headers, data=body
         )
 
     def _generate_builder_headers(

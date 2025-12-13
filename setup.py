@@ -17,6 +17,7 @@ setuptools.setup(
     install_requires=[
         "python-dotenv",
         "requests",
+        "PySocks",
         "py-builder-signing-sdk",
     ],
     project_urls={

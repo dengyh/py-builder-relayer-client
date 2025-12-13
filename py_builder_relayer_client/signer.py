@@ -9,6 +9,30 @@ from hexbytes import HexBytes
 from .utils.utils import prepend_zx
 
 
+def _get_proxy_config():
+    """
+    Get proxy configuration from PROXY_URL environment variable
+    Returns a dict suitable for requests library proxies parameter
+
+    Supports HTTP, HTTPS, and SOCKS5 proxy protocols:
+    - HTTP: http://proxy:port
+    - HTTPS: https://proxy:port
+    - SOCKS5: socks5://proxy:port or socks5h://proxy:port
+    """
+    proxy_url = os.getenv("PROXY_URL")
+    if not proxy_url:
+        return None
+
+    # requests library expects proxies in format:
+    # {'http': 'http://proxy:port', 'https': 'https://proxy:port'}
+    # If PROXY_URL is provided, use it for both http and https
+    # SOCKS5 URLs (socks5:// or socks5h://) are also supported
+    return {
+        'http': proxy_url,
+        'https': proxy_url,
+    }
+
+
 class Signer:
     def __init__(self, private_key: str, chain_id: int, rpc_url: Optional[str] = None):
         if private_key is None or chain_id is None:
@@ -76,7 +100,13 @@ class Signer:
         }
 
         try:
-            response = requests.post(self.rpc_url, json=payload, timeout=10)
+            proxies = _get_proxy_config()
+            response = requests.post(
+                self.rpc_url,
+                json=payload,
+                timeout=10,
+                proxies=proxies,
+            )
             response.raise_for_status()
             result = response.json()
 
